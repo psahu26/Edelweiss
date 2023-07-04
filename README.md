@@ -3,6 +3,7 @@
 # Edelweiss
 
 This project involves creating a WebSocket server that enables real-time communication between clients and the server. To run this WebSocket server, you'll need to have Node.js and npm installed on your machine. Additionally, we'll be using nodemon to automatically restart the server whenever there are changes to the code. If you don't have nodemon installed, make sure to install it by running the following command:
+`npm install`
 
 `npm install nodemon`
 
