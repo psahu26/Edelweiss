@@ -3,7 +3,7 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { setDateFilter, setSymbolFilter } from "../redux/dataPacket";
 
 export function SelectionBox() {
@@ -15,14 +15,27 @@ export function SelectionBox() {
     // Use useMemo to compute uniqueTradingNames memoized version
     const uniqueTradingNames = useMemo(() => {
         const all = [...puts, ...calls];
-        return [...new Set(all.map(item => item.tradingName))];
+        const tradingNames = [...new Set(all.map(item => item.tradingName))];
+        const sortedTradingNames = tradingNames.sort((a, b) => a.localeCompare(b));
+        return sortedTradingNames;
     }, [puts, calls]);
 
-    // Use useMemo to compute uniqueTradingNames memoized version
+    // Use useMemo to compute uniqueTradingNames memoized version and sort the dates in ascending order
     const unquieDateValue = useMemo(() => {
         const all = [...puts, ...calls];
-        return [...new Set(all.map(item => item.expiryDate))];
+        const uniqueDates = [...new Set(all.map(item => item.expiryDate))];
+        const filteredDates = uniqueDates.filter(date => date && date !== "void" && date !== "0");
+        const sortedDates = filteredDates.sort((a, b) => new Date(a) - new Date(b));
+        return sortedDates;
+
     }, [puts, calls]);
+
+    useEffect(() => {
+        // Auto-select the first date in the dropdown when the component mounts
+        if (unquieDateValue.length > 0) {
+            handleDateChange({ target: { value: unquieDateValue[0] } });
+        }
+    }, [unquieDateValue]);
 
     const handleChange = (event) => {
         dispatch(setSymbolFilter(event.target.value));
@@ -35,41 +48,39 @@ export function SelectionBox() {
     };
 
     return (
-        <>
-            <FormControl sx={{ m: 1, minWidth: 200 }}>
-                <InputLabel id="demo-simple-select-autowidth-label">Symbol Name</InputLabel>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1rem' }}>
+            <FormControl variant="outlined">
+                <InputLabel htmlFor="symbol-select">Symbol Name</InputLabel>
                 <Select
-                    labelId="demo-simple-select-autowidth-label"
-                    id="demo-simple-select-autowidth"
+                    id="symbol-select"
                     value={optionSelected}
                     onChange={handleChange}
-                    autoWidth
                     label="Select Symbol"
+                    style={{ minWidth: '200px' }}
                 >
-                    <MenuItem value=''>None</MenuItem>
-
-                    {uniqueTradingNames.map(e => {
-                        return <MenuItem key={e} value={e}>{e}</MenuItem>;
-                    })}
+                    <MenuItem value=''>
+                        <em>All</em>
+                    </MenuItem>
+                    {uniqueTradingNames.map(e => (
+                        <MenuItem key={e} value={e}>{e}</MenuItem>
+                    ))}
                 </Select>
             </FormControl>
 
-            <FormControl sx={{ m: 1, minWidth: 200 }}>
-                <InputLabel id="simple-select-autowidth-label">Expiry Date</InputLabel>
+            <FormControl variant="outlined">
+                <InputLabel htmlFor="date-select">Expiry Date</InputLabel>
                 <Select
-                    labelId="simple-select-autowidth-label"
-                    id="simple-select-autowidth"
+                    id="date-select"
                     value={dateSelected}
                     onChange={handleDateChange}
-                    autoWidth
                     label="Select Date"
+                    style={{ minWidth: '200px' }}
                 >
-                    <MenuItem value=''>None</MenuItem>
-                    {unquieDateValue.map(e => {
-                        return <MenuItem key={e} value={e}>{e}</MenuItem>;
-                    })}
+                    {unquieDateValue.map((e) => (
+                        <MenuItem key={e} value={e}>{e}</MenuItem>
+                    ))}
                 </Select>
             </FormControl>
-        </>
+        </div>
     );
 }

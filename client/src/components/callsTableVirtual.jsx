@@ -12,6 +12,7 @@ import { TableVirtuoso } from 'react-virtuoso';
 import { useSelector } from 'react-redux';
 import { orderBy } from 'lodash';
 
+
 export const tableHeaderColumns = [
     {
         width: 20,
@@ -21,7 +22,7 @@ export const tableHeaderColumns = [
     },
     {
         width: 50,
-        label: 'Open Interest',
+        label: 'OI',
         dataKey: 'openInterest',
         numeric: true,
     },
@@ -63,14 +64,7 @@ export const tableHeaderColumns = [
     },
     {
         width: 20,
-        label: 'Expiry Date',
-        dataKey: 'expiryDate',
-        numeric: false,
-    },
- 
-    {
-        width: 20,
-        label: 'COI',
+        label: 'Change OI',
         dataKey: 'coi',
         numeric: true,
     },
@@ -78,30 +72,29 @@ export const tableHeaderColumns = [
         width:20,
         label: 'Change',
         dataKey: 'change',
-        numberic: true
+        numeric: true
     },
     {
         width:20,
         label: 'Implied Volatility',
         dataKey: 'impliedVolatility',
-        numberic: true
+        
     }
 ];
 
 const VirtuosoTableComponents = {
   Scroller: React.forwardRef((props, ref) => (
-    <TableContainer component={Paper} {...props} ref={ref} />
+      <TableContainer component={Paper} {...props} ref={ref}  />
   )),
   Table: (props) => (
-    <Table {...props} sx={{ borderCollapse: 'separate', tableLayout: 'fixed' }} />
+      <Table {...props} sx={{ borderCollapse: 'separate', tableLayout: 'fixed' }} />
   ),
   TableHead,
   // eslint-disable-next-line no-unused-vars
-  TableRow: ({ item: _item, ...props }) => {
-    return <TableRow {...props} style={_item.strikePrice > _item.lastTradedPrice ? {background: 'rgba(255, 148, 112)'}: {}} />
-
-  },
-  TableBody: React.forwardRef((props, ref) => <TableBody {...props} ref={ref} />),
+  TableRow: ({ item: _item, ...props }) =>{ 
+      return <TableRow {...props} style={_item.strikePrice > _item.lastTradedPrice ? {background: 'rgba(255, 148, 112,0.4)'}: {}} />},
+  TableBody: React.forwardRef((props, ref) => {
+  return <TableBody {...props} ref={ref} />}),
 };
 
 function fixedHeaderContent() {
@@ -112,9 +105,14 @@ function fixedHeaderContent() {
           key={column.dataKey}
           variant="head"
           align={column.numeric || false ? 'right' : 'left'}
-          style={{ width: column.width }}
-          sx={{
-            backgroundColor: 'background.paper',
+          style={{
+            width: column.width,
+            backgroundColor: '#333',
+            color: 'white',
+            borderBottom: '1px solid #444',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            letterSpacing: '0.5px',
           }}
         >
           {column.label}
@@ -124,57 +122,70 @@ function fixedHeaderContent() {
   );
 }
 
+
 function rowContent(_index, row) {
   return (
     <React.Fragment>
-       
       {tableHeaderColumns.map((column) => (
-        <TableCell
-          key={column.dataKey}
-          align={column.numeric || false ? 'right' : 'left'}
-        >
-          {row[column.dataKey]}
+        <TableCell key={column.dataKey} align={column.numeric || false ? 'right' : 'left'}>
+          {column.dataKey === 'change' ? (
+            <span style={{ color: row.change >= 0 ? 'limegreen' : 'red' }}>
+              {row[column.dataKey]}
+            </span>
+          ) : (
+            row[column.dataKey]
+          )}
         </TableCell>
       ))}
-   
     </React.Fragment>
   );
 }
 
 
+
+
 export default function CallsTable() {
-    const { calls, filter_symbol, filter_date } = useSelector((state) => state.dataPackets);
-    const [rows, setRows] = useState(calls);
+  const { calls, filter_symbol, filter_date } = useSelector((state) => state.dataPackets);
+  const [rows, setRows] = useState(calls);
 
-    useEffect(() => {
-        let filteredRows = calls;
+  useEffect(() => {
+    let filteredRows = calls;
 
-        // Update rows when filter_symbol or selectedDate changes
-        if (filter_symbol) {
-            filteredRows = filteredRows.filter((put) => put.tradingName === filter_symbol);
-        }
-        if (filter_date) {
-            filteredRows = filteredRows.filter((put) => put.expiryDate === filter_date);
-        }
+    // Update rows when filter_symbol or selectedDate changes
+    if (filter_symbol) {
+      filteredRows = filteredRows.filter((call) => call.tradingName === filter_symbol);
+    }
+    if (filter_date) {
+      filteredRows = filteredRows.filter((call) => call.expiryDate === filter_date);
+    }
 
-        
-        // Sorting based on the 'strikePrice' column
-        filteredRows = orderBy(filteredRows, ['strikePrice'], ['asc']);
-        setRows(filteredRows)
+    // Sorting based on the 'strikePrice' column
+    filteredRows = orderBy(filteredRows, ['strikePrice'], ['asc']);
+    setRows(filteredRows);
+  }, [filter_symbol, filter_date, calls]);
 
-    }, [filter_symbol, filter_date, calls]);
-
-    return (
-        <Paper style={{ height: 1000, width: '100%' }}>
-              <div style={{textAlign: 'center', margin: '10px', border: '2px solid black'}}>
-                Calls Table
-            </div>
-            <TableVirtuoso
-                data={rows}
-                components={VirtuosoTableComponents}
-                fixedHeaderContent={fixedHeaderContent}
-                itemContent={rowContent}
-            />
-        </Paper>
-    );
+  
+  return (
+    <Paper style={{ height: '1500vh', backgroundColor: '#111', color: '#fff' }}>
+      <div
+        style={{
+          textAlign: 'center',
+          margin: '10px',
+          border: '2px solid #444',
+          fontSize: '24px',
+          fontWeight: 'bold',
+          letterSpacing: '1px',
+        }}
+      >
+        Calls Table
+      </div>
+      <TableVirtuoso
+        data={rows}
+        components={VirtuosoTableComponents}
+        fixedHeaderContent={fixedHeaderContent}
+        itemContent={rowContent}
+      />
+    </Paper>
+  );
 }
+

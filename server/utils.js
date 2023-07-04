@@ -36,7 +36,7 @@ function extractStrikePriceFromSymbol(tradingSymbol) {
 function unixTimestampToDate(unixTimestamp) {
     // Create a new Date object using the Unix timestamp (in milliseconds)
     const date = new Date(unixTimestamp);
-  
+
     // Get the components of the date
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -44,15 +44,20 @@ function unixTimestampToDate(unixTimestamp) {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const seconds = String(date.getSeconds()).padStart(2, '0');
-  
+
     // Return the formatted date string
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-  }
-  
+}
+
+
+
+
+
+
 module.exports = {
     extractDateFromTradingSymbol,
     extractTradingNameFromSymbol,
     extractOptionTypeFromSymbol,
     extractStrikePriceFromSymbol,
-    unixTimestampToDate
+    unixTimestampToDate,
 };

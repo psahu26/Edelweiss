@@ -16,7 +16,7 @@ import { orderBy } from 'lodash';
 const tableHeaderColumns = [
     {
         width: 50,
-        label: 'Open Interest',
+        label: 'OI',
         dataKey: 'openInterest',
         numeric: true,
     },
@@ -56,15 +56,10 @@ const tableHeaderColumns = [
         dataKey: 'askQuantity',
         numeric: true,
     },
+ 
     {
         width: 20,
-        label: 'Expiry Date',
-        dataKey: 'expiryDate',
-        numeric: false,
-    },
-    {
-        width: 20,
-        label: 'COI',
+        label: 'Change OI',
         dataKey: 'coi',
         numeric: true,
     },
@@ -72,14 +67,14 @@ const tableHeaderColumns = [
         width:20,
         label: 'Change',
         dataKey: 'change',
-        numberic: true
+        numeric: true
     },
     {
         width:20,
         label: 'Implied Volatility',
         dataKey: 'impliedVolatility',
-        numberic: true
-    }
+        numeric: true
+    },
 ];
 
 
@@ -93,46 +88,56 @@ const VirtuosoTableComponents = {
     TableHead,
     // eslint-disable-next-line no-unused-vars
     TableRow: ({ item: _item, ...props }) =>{ 
-        return <TableRow {...props} style={_item.strikePrice < _item.lastTradedPrice ? {background: 'rgba(255, 148, 112)'}: {}} />},
+        return <TableRow {...props} style={_item.strikePrice > _item.lastTradedPrice ? {background: 'rgba(255, 148, 112,0.4)'}: {}} />},
     TableBody: React.forwardRef((props, ref) => {
     return <TableBody {...props} ref={ref} />}),
 };
 
 function fixedHeaderContent() {
     return (
-        <TableRow>
-            {tableHeaderColumns.map((column) => (
-                <TableCell
-                    key={column.dataKey}
-                    variant="head"
-                    align={column.numeric || false ? 'right' : 'left'}
-                    style={{ width: column.width }}
-                    sx={{
-                        backgroundColor: 'background.paper',
-                    }}
-                >
-                    {column.label}
-                </TableCell>
-            ))}
-        </TableRow>
+      <TableRow>
+        {tableHeaderColumns.map((column) => (
+          <TableCell
+            key={column.dataKey}
+            variant="head"
+            align={column.numeric || false ? 'right' : 'left'}
+            style={{
+              width: column.width,
+              backgroundColor: '#333',
+              color: 'white',
+              borderBottom: '1px solid #444',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              letterSpacing: '0.5px',
+            }}
+          >
+            {column.label}
+          </TableCell>
+        ))}
+      </TableRow>
     );
-}
+  }
+  
 
-function rowContent(_index, row) {
+  function rowContent(_index, row) {
     return (
-        <React.Fragment>
-            {tableHeaderColumns.map((column) => (
-                <TableCell
-                    key={column.dataKey}
-                    align={column.numeric || false ? 'right' : 'left'}
-                >
-                    {row[column.dataKey]}
-                </TableCell>
-            ))}
-        </React.Fragment>
+      <React.Fragment>
+        {tableHeaderColumns.map((column) => (
+          <TableCell key={column.dataKey} align={column.numeric || false ? 'right' : 'left'}>
+            {column.dataKey === 'change' ? (
+              <span style={{ color: row.change >= 0 ? 'limegreen' : 'red' }}>
+                {row[column.dataKey]}
+              </span>
+            ) : (
+              row[column.dataKey]
+            )}
+          </TableCell>
+        ))}
+      </React.Fragment>
     );
-}
-
+  }
+  
+  
 
 export default function PutsTable() {
     const { puts, filter_symbol, filter_date } = useSelector((state) => state.dataPackets);
@@ -156,17 +161,26 @@ export default function PutsTable() {
         setRows(filteredRows);
       }, [filter_symbol, filter_date, puts, isSortingAscending]);
 
-    return (
-        <Paper style={{ height: 1000, width: '100%' }}>
-            <div style={{textAlign: 'center', margin: '10px', border: '2px solid black'}}>
-                Puts Table
-            </div>
-            <TableVirtuoso
-                data={rows}
-                components={VirtuosoTableComponents}
-                fixedHeaderContent={fixedHeaderContent}
-                itemContent={rowContent}
-            />
+      return (
+        <Paper style={{ height: '1500vh', backgroundColor: '#111', color: '#fff' }}>
+          <div
+            style={{
+              textAlign: 'center',
+              margin: '10px',
+              border: '2px solid #444',
+              fontSize: '24px',
+              fontWeight: 'bold',
+              letterSpacing: '1px',
+            }}
+          >
+            Puts Table
+          </div>
+          <TableVirtuoso
+            data={rows}
+            components={VirtuosoTableComponents}
+            fixedHeaderContent={fixedHeaderContent}
+            itemContent={rowContent}
+          />
         </Paper>
-    );
-}
+      );
+    }

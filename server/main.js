@@ -2,8 +2,10 @@ const WebSocket = require('ws');
 const net = require('net');
 const express = require('express');
 const cors = require('cors');
-const { extractDateFromTradingSymbol, extractTradingNameFromSymbol, extractOptionTypeFromSymbol, extractStrikePriceFromSymbol } = require('./utils');
+const { extractDateFromTradingSymbol, extractTradingNameFromSymbol, extractOptionTypeFromSymbol, extractStrikePriceFromSymbol, unixTimestampToDate } = require('./utils');
 const bs = require('black-scholes');
+
+
 
 const serverIP = 'localhost'; // Replace with the actual IP address of the TCP server
 const serverPort = 8080; // Replace with the actual port number of the TCP server
@@ -44,9 +46,10 @@ wss.on('connection', (ws) => {
   };
 
   let batchTimeout;
+  
 
   tcpSocket.on('data', (data) => {
-    // Process the received data
+   
     const packetLength = data.readInt32LE(0);
     const tradingSymbol = data.toString('utf8', 4, 34).replace(/\0+$/, '');
     const sequenceNumber = data.readBigInt64LE(34);
@@ -56,7 +59,7 @@ wss.on('connection', (ws) => {
     const volume = data.readBigInt64LE(66);
     const bidPrice = data.readBigInt64LE(74);
     const bidQuantity = data.readBigInt64LE(82);
-    const askPrice = data.readBigInt64LE(90);
+    const askPrice = (data.readBigInt64LE(90));
     const askQuantity = data.readBigInt64LE(98);
     const openInterest = data.readBigInt64LE(106);
     const previousClosePrice = data.readBigInt64LE(114);
@@ -67,42 +70,34 @@ wss.on('connection', (ws) => {
       tradingSymbol,
       sequenceNumber: sequenceNumber.toString(),
       timestamp: timestamp.toString(),
-      lastTradedPrice: lastTradedPrice.toString(),
+      lastTradedPrice: (lastTradedPrice.toString()/100).toFixed(2),
       lastTradedQuantity: lastTradedQuantity.toString(),
       volume: volume.toString(),
-      bidPrice: bidPrice.toString(),
+      bidPrice: (bidPrice.toString()/100).toFixed(2),
       bidQuantity: bidQuantity.toString(),
-      askPrice: askPrice.toString(),
-      askQuantity: askQuantity.toString(),
-      openInterest: openInterest.toString(),
-      previousClosePrice: previousClosePrice.toString(),
-      previousOpenInterest: previousOpenInterest.toString()
+      askPrice: (askPrice.toString()/100).toFixed(2),
+      askQuantity: (askQuantity.toString()/1).toFixed(2),
+      openInterest: (openInterest.toString()/100).toFixed(2),
+      previousClosePrice: (previousClosePrice.toString()/100).toFixed(2),
+      previousOpenInterest: (previousOpenInterest.toString()/100).toFixed(2)
     };
 
     const expiryDate = extractDateFromTradingSymbol(tradingSymbol);
     const tradingName = extractTradingNameFromSymbol(tradingSymbol);
     const OptionType = extractOptionTypeFromSymbol(tradingSymbol);
-    const strikePrice = extractStrikePriceFromSymbol(tradingSymbol);
+    const strikePrice = (extractStrikePriceFromSymbol(tradingSymbol)/1).toFixed(2);
+    const r= 0.05;
 
     const expiryTimestamp = new Date(expiryDate);
     const currentTimestamp = new Date().getTime();
-    const timeToMaturity = (expiryTimestamp - currentTimestamp) / (252 * 24 * 60 * 60 * 1000);
+    const timeToMaturity = (expiryTimestamp - currentTimestamp) / ( 252* 24 * 60 * 60 * 1000);
 
-    // Using the Black-Scholes formula to calculate Implied Volatility
-    // const impliedVolatility = bs.blackScholes(
-    //   marketData.lastTradedPrice / 100, // Convert from paise to rupees
-    //   strikePrice / 100, // Convert from paise to rupees
-    //   timeToMaturity,
-    //   0.2,
-    //   0.05,
-    //   OptionType === 'Calls' ? 'call' : 'put', // Assuming OptionType is either 'Calls' or 'Puts'
-    //   // optionPrice: marketData.lastTradedPrice / 100, // Convert from paise to rupees
-    // );
+  
 
-    const impliedVolatility = bs.blackScholes(marketData.lastTradedPrice / 100, strikePrice / 100, timeToMaturity, 0.2, .05, OptionType === 'Calls' ? 'call' : 'put');
+    const impliedVolatility = bs.blackScholes(parseFloat(marketData.lastTradedPrice)/100, parseFloat(strikePrice/100), timeToMaturity, 0.0002, r, OptionType === 'Calls' ? 'call' : 'put');// paise to ruppee
+    const change = ((marketData.lastTradedPrice - marketData.previousClosePrice)/100).toFixed(2);
+    const coi = ((marketData.bidPrice - marketData.askPrice)).toFixed(2);
 
-    const change = marketData.lastTradedPrice - marketData.previousClosePrice;
-    const coi = marketData.bidPrice - marketData.askPrice;
     // Add the marketData object to the batchedData array
     batchedData.push({
       ...marketData,
@@ -112,8 +107,11 @@ wss.on('connection', (ws) => {
       strikePrice,
       change,
       coi,
+      timeToMaturity,
       impliedVolatility: parseFloat(impliedVolatility).toFixed(2)
     });
+
+    
 
     // Check if the batch size has been reached
     if (batchedData.length >= batchSize) {
